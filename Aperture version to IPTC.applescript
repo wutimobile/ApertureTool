@@ -33,6 +33,33 @@ on getProject(projectName)
 end getProject
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+-- process all image version metadata
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+on processAllImageVersionMetadata()
+	
+	local versionDataList
+	
+	set nVersion to 0
+	
+	tell application "Aperture"
+		
+		set theVersionList to image versions
+		
+		repeat with theVersion in theVersionList
+			
+			processVersionMetadata(theVersion) of me
+			
+			set nVersion to nVersion + 1
+			
+		end repeat
+		
+	end tell
+	
+	notify(("Process " & nVersion as string) & " version", "")
+	
+end processAllImageVersionMetadata
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 -- process project metadata
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 on processProjectMetadata(theProject)
@@ -118,17 +145,44 @@ on notify(theMessage, theTitle)
 end notify
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+--
+--  choose method
+--
+-- return array / missing value (when user cancel dialog box)
+--
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+on choose(theTitle, promptString, itemList)
+	
+	set chosen to choose from list itemList Â
+		with title theTitle Â
+		with prompt Â
+		promptString with multiple selections allowed
+	
+	if (chosen = false) then
+		
+		return missing value -- do nothing
+		
+	end if
+	
+	return chosen
+	
+end choose
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 --  main
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+-- processAllImageVersionMetadata()
+
 set apertureProjectNameList to getProjectNameList()
 
-repeat with projectName in apertureProjectNameList
+set chosenList to choose("Aperture tool", "Save version name into IPTC Tag", apertureProjectNameList)
+
+repeat with projectName in chosenList
 	
 	set apertureProject to getProject(projectName)
 	
-	set versionDataList to processProjectMetadata(apertureProject)
-	
-	return versionDataList
+	processProjectMetadata(apertureProject)
 	
 end repeat
 
