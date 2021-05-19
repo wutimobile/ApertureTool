@@ -1,5 +1,5 @@
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
--- get project name list
+--	get project name list
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 on getProjectNameList()
 	
@@ -14,7 +14,7 @@ on getProjectNameList()
 end getProjectNameList
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
--- get project
+--	get project
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 on getProject(projectName)
 	
@@ -33,13 +33,15 @@ on getProject(projectName)
 end getProject
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
--- process all image version metadata
+--	process all image version metadata
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 on processAllImageVersionMetadata()
 	
 	local versionDataList
 	
-	set nVersion to 0
+	set nSkip to 0
+	set nSaved to 0
+	set nFail to 0
 	
 	tell application "Aperture"
 		
@@ -47,26 +49,54 @@ on processAllImageVersionMetadata()
 		
 		repeat with theVersion in theVersionList
 			
-			processVersionMetadata(theVersion) of me
+			set flag to processVersionMetadata(theVersion) of me
 			
-			set nVersion to nVersion + 1
+			if flag is missing value then
+				
+				set nSkip to nSkip + 1
+				
+			else if flag is true then
+				
+				set nSaved to nSaved + 1
+				
+			else
+				
+				set nFail to nFail + 1
+				
+			end if
 			
 		end repeat
 		
 	end tell
 	
-	notify(("Process " & nVersion as string) & " version", "")
+	set theMessage to "versions "
+	
+	if nSaved > 0 then
+		set theMessage to (theMessage & "saved #" & nSaved as string) & " "
+	end if
+	
+	if nSkip > 0 then
+		set theMessage to (theMessage & "skip #" & nSkip as string) & " "
+	end if
+	
+	if nFail > 0 then
+		set theMessage to (theMessage & "fail #" & nFail as string) & " "
+	end if
+	
+	notify(theMessage, "Process #" & (nSkip + nSaved + nFail) as string)
 	
 end processAllImageVersionMetadata
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
--- process project metadata
+--	process project metadata
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 on processProjectMetadata(theProject)
 	
 	local versionDataList
 	
-	set versionDataList to {}
+	set nSkip to 0
+	set nSaved to 0
+	set nFail to 0
 	
 	tell application "Aperture"
 		
@@ -78,22 +108,46 @@ on processProjectMetadata(theProject)
 		
 		repeat with theVersion in theVersionList
 			
-			set versionData to processVersionMetadata(theVersion) of me
+			set flag to processVersionMetadata(theVersion) of me
 			
-			set versionDataList's end to versionData
+			if flag is missing value then
+				
+				set nSkip to nSkip + 1
+				
+			else if flag is true then
+				
+				set nSaved to nSaved + 1
+				
+			else
+				
+				set nFail to nFail + 1
+				
+			end if
 			
 		end repeat
 		
 	end tell
 	
-	notify(("Process " & (count of versionDataList) as string) & " version", "Project " & name of theProject)
+	set theMessage to "versions "
 	
-	return versionDataList
+	if nSaved > 0 then
+		set theMessage to (theMessage & "saved #" & nSaved as string) & " "
+	end if
+	
+	if nSkip > 0 then
+		set theMessage to (theMessage & "skip #" & nSkip as string) & " "
+	end if
+	
+	if nFail > 0 then
+		set theMessage to (theMessage & "fail #" & nFail as string) & " "
+	end if
+	
+	notify(theMessage, ("Process #" & (nSkip + nSaved + nFail) as string) & " in project " & name of theProject)
 	
 end processProjectMetadata
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
--- process project metadata
+--	process project metadata
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 on processVersionMetadata(theVersion)
 	
@@ -106,20 +160,35 @@ on processVersionMetadata(theVersion)
 			
 			-- save 'version name' in IPTC core - Status Title
 			if (exists the value of the IPTC tag named "ObjectName") then
-				delete IPTC tag named "ObjectName"
+				
+				if the value of the IPTC tag named "ObjectName" is equal to theName then
+					
+					--	already saved, skip
+					return missing value
+					
+				else
+					
+					--	this IPTC tag is used for other information
+					return false
+					
+				end if
+				
+			else
+				
+				--	save
+				make new IPTC tag with properties {name:"ObjectName", value:theName}
+				return true
+				
 			end if
-			make new IPTC tag with properties {name:"ObjectName", value:theName}
 			
 		end tell
 		
 	end tell
 	
-	return {theApertureId, theName}
-	
 end processVersionMetadata
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
--- display dialog 
+--	display dialog 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 on info(info)
 	
@@ -132,7 +201,7 @@ on info(info)
 end info
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
---  notify method
+--	notify method
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 on notify(theMessage, theTitle)
 	
@@ -146,9 +215,9 @@ end notify
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 --
---  choose method
+--	choose method
 --
--- return array / missing value (when user cancel dialog box)
+--	return array / missing value (when user cancel dialog box)
 --
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 on choose(theTitle, promptString, itemList)
@@ -169,22 +238,27 @@ on choose(theTitle, promptString, itemList)
 end choose
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
---  main
+--	main
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+on main()
+	
+	set apertureProjectNameList to getProjectNameList()
+	
+	set chosenList to choose("Preserve version name into IPTC Tag", "Choose Aperture Project to process", apertureProjectNameList)
+	
+	repeat with projectName in chosenList
+		
+		set apertureProject to getProject(projectName)
+		
+		processProjectMetadata(apertureProject)
+		
+	end repeat
+	
+end main
 
 -- processAllImageVersionMetadata()
 
-set apertureProjectNameList to getProjectNameList()
-
-set chosenList to choose("Aperture tool", "Save version name into IPTC Tag", apertureProjectNameList)
-
-repeat with projectName in chosenList
-	
-	set apertureProject to getProject(projectName)
-	
-	processProjectMetadata(apertureProject)
-	
-end repeat
+main()
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 --  EOF
