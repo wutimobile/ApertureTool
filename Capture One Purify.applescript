@@ -91,6 +91,23 @@ on purifyVariant(theVariant)
 end purifyVariant
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+--	display dialog 
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+on info(info)
+	
+	tell application "Finder"
+		
+		set theResult to display dialog info buttons {"OK", "Cancel"} with icon note giving up after 5
+		
+		set button to button returned of theResult
+		
+		return (button is "OK")
+		
+	end tell
+	
+end info
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 --  notify method
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 on notify(theMessage, theTitle)
@@ -140,4 +157,8 @@ end main
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 --	run it
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
-main()
+if info("Please open Capture One Catalog before run this script") then
+	
+	main()
+	
+end if

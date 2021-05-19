@@ -192,9 +192,13 @@ end processVersionMetadata
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 on info(info)
 	
-	tell application "Aperture"
+	tell application "Finder"
 		
-		display dialog info buttons {"OK"} with icon note giving up after 2
+		set theResult to display dialog info buttons {"OK", "Cancel"} with icon note giving up after 5
+		
+		set button to button returned of theResult
+		
+		return (button is "OK")
 		
 	end tell
 	
@@ -256,9 +260,14 @@ on main()
 	
 end main
 
--- processAllImageVersionMetadata()
-
-main()
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+--	run it
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+if info("Please open Aperture Library before run this script") then
+	
+	main()
+	
+end if
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 --  EOF
